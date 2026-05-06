@@ -22,6 +22,24 @@ Open:
 - API health: http://localhost:8088/api/healthz
 - Direct API: http://localhost:8080/api/healthz
 
+## API Endpoints
+
+- `GET /api/healthz`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/me`
+
+Registration and login accept:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "correct horse"
+}
+```
+
+Authenticated requests use `Authorization: Bearer <token>`.
+
 ## Backend Checks
 
 ```bash
