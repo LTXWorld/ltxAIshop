@@ -6,12 +6,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ltxai/shop/apps/api/internal/auth"
 	"github.com/ltxai/shop/apps/api/internal/catalog"
+	"github.com/ltxai/shop/apps/api/internal/checkout"
 	"github.com/ltxai/shop/apps/api/internal/health"
 )
 
 type RouterOptions struct {
-	Auth    *auth.Handler
-	Catalog *catalog.Handler
+	Auth     *auth.Handler
+	Catalog  *catalog.Handler
+	Checkout *checkout.Handler
 }
 
 type Option func(*RouterOptions)
@@ -25,6 +27,12 @@ func WithAuth(handler auth.Handler) Option {
 func WithCatalog(handler catalog.Handler) Option {
 	return func(options *RouterOptions) {
 		options.Catalog = &handler
+	}
+}
+
+func WithCheckout(handler checkout.Handler) Option {
+	return func(options *RouterOptions) {
+		options.Checkout = &handler
 	}
 }
 
@@ -48,6 +56,16 @@ func NewRouter(options ...Option) http.Handler {
 		r.Post("/api/auth/register", authHandler.Register)
 		r.Post("/api/auth/login", authHandler.Login)
 		r.With(authHandler.Middleware).Get("/api/me", authHandler.Me)
+
+		if routerOptions.Checkout != nil {
+			checkoutHandler := routerOptions.Checkout
+			r.With(authHandler.Middleware).Get("/api/cart", checkoutHandler.GetCart)
+			r.With(authHandler.Middleware).Put("/api/cart/items", checkoutHandler.SetCartItem)
+			r.With(authHandler.Middleware).Delete("/api/cart/items/{productID}", checkoutHandler.RemoveCartItem)
+			r.With(authHandler.Middleware).Post("/api/orders", checkoutHandler.CreateOrderFromCart)
+			r.With(authHandler.Middleware).Get("/api/orders", checkoutHandler.ListOrders)
+			r.With(authHandler.Middleware).Get("/api/orders/{id}", checkoutHandler.GetOrder)
+		}
 
 		if routerOptions.Catalog != nil {
 			catalogHandler := routerOptions.Catalog
