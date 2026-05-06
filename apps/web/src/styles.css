@@ -1,0 +1,93 @@
+:root {
+  color: #172026;
+  background: #f6f7f4;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 40px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  gap: 32px;
+  align-items: center;
+  max-width: 1120px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #496157;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: 56px;
+  line-height: 1;
+}
+
+.lede {
+  margin: 18px 0 0;
+  max-width: 560px;
+  color: #53615d;
+  font-size: 20px;
+}
+
+.status-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.status-panel div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 1px solid #d7ddd7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #27332f;
+  font-weight: 700;
+}
+
+.status-panel svg {
+  width: 22px;
+  height: 22px;
+  color: #0f766e;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 24px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    align-content: center;
+    min-height: calc(100vh - 48px);
+  }
+
+  h1 {
+    font-size: 42px;
+  }
+}
