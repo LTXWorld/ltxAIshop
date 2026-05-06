@@ -135,6 +135,10 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	return claims, ok
 }
 
+func ContextWithClaims(ctx context.Context, claims Claims) context.Context {
+	return context.WithValue(ctx, claimsContextKey, claims)
+}
+
 func (h Handler) writeAuthResponse(w http.ResponseWriter, status int, user User) {
 	token, err := h.tokens.Issue(user, tokenTTL)
 	if err != nil {

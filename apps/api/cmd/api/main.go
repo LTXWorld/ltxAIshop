@@ -12,6 +12,7 @@ import (
 
 	"github.com/ltxai/shop/apps/api/internal/auth"
 	"github.com/ltxai/shop/apps/api/internal/catalog"
+	"github.com/ltxai/shop/apps/api/internal/checkout"
 	"github.com/ltxai/shop/apps/api/internal/config"
 	"github.com/ltxai/shop/apps/api/internal/database"
 	"github.com/ltxai/shop/apps/api/internal/httpserver"
@@ -47,10 +48,11 @@ func main() {
 
 	authHandler := auth.NewHandler(auth.NewPostgresStore(db), auth.NewTokenManager(cfg.AuthTokenKey))
 	catalogHandler := catalog.NewHandler(catalog.NewPostgresStore(db))
+	checkoutHandler := checkout.NewHandler(checkout.NewPostgresStore(db))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler), httpserver.WithCatalog(catalogHandler)),
+		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler), httpserver.WithCatalog(catalogHandler), httpserver.WithCheckout(checkoutHandler)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -33,6 +33,12 @@ Open:
 - `GET /api/admin/products`
 - `POST /api/admin/products`
 - `PUT /api/admin/products/{id}`
+- `GET /api/cart`
+- `PUT /api/cart/items`
+- `DELETE /api/cart/items/{productID}`
+- `POST /api/orders`
+- `GET /api/orders`
+- `GET /api/orders/{id}`
 
 Registration and login accept:
 
