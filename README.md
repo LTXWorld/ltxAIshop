@@ -28,6 +28,11 @@ Open:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/me`
+- `GET /api/products`
+- `GET /api/products/{slug}`
+- `GET /api/admin/products`
+- `POST /api/admin/products`
+- `PUT /api/admin/products/{id}`
 
 Registration and login accept:
 
@@ -39,6 +44,9 @@ Registration and login accept:
 ```
 
 Authenticated requests use `Authorization: Bearer <token>`.
+
+To bootstrap an administrator locally or on a fresh deployment, set both
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` before starting the API.
 
 ## Backend Checks
 

@@ -114,6 +114,22 @@ func (h Handler) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+func RequireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := ClaimsFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		if claims.Role != RoleAdmin {
+			writeError(w, http.StatusForbidden, "administrator access required")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	claims, ok := ctx.Value(claimsContextKey).(Claims)
 	return claims, ok
