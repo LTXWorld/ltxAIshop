@@ -42,6 +42,7 @@ Open:
 - `POST /api/payments`
 - `GET /api/payments/{id}`
 - `POST /api/payments/{id}/confirm`
+- `POST /api/payments/alipay/notify`
 
 Registration and login accept:
 
@@ -56,6 +57,10 @@ Authenticated requests use `Authorization: Bearer <token>`.
 
 To bootstrap an administrator locally or on a fresh deployment, set both
 `ADMIN_EMAIL` and `ADMIN_PASSWORD` before starting the API.
+
+To enable Alipay sandbox page-pay form generation and notify verification, set
+`ALIPAY_APP_ID`, `ALIPAY_APP_PRIVATE_KEY`, `ALIPAY_PUBLIC_KEY`,
+`ALIPAY_NOTIFY_URL`, and `ALIPAY_RETURN_URL`.
 
 ## Backend Checks
 

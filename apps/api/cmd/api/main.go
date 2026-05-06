@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ltxai/shop/apps/api/internal/alipay"
 	"github.com/ltxai/shop/apps/api/internal/auth"
 	"github.com/ltxai/shop/apps/api/internal/catalog"
 	"github.com/ltxai/shop/apps/api/internal/checkout"
@@ -50,7 +51,23 @@ func main() {
 	authHandler := auth.NewHandler(auth.NewPostgresStore(db), auth.NewTokenManager(cfg.AuthTokenKey))
 	catalogHandler := catalog.NewHandler(catalog.NewPostgresStore(db))
 	checkoutHandler := checkout.NewHandler(checkout.NewPostgresStore(db))
-	paymentsHandler := payments.NewHandler(payments.NewPostgresStore(db))
+	paymentsStore := payments.NewPostgresStore(db)
+	paymentsHandler := payments.NewHandler(paymentsStore)
+	if cfg.AlipayAppID != "" {
+		alipayClient, err := alipay.NewClient(alipay.Config{
+			AppID:      cfg.AlipayAppID,
+			GatewayURL: cfg.AlipayGateway,
+			PrivateKey: cfg.AlipayPrivateKey,
+			PublicKey:  cfg.AlipayPublicKey,
+			NotifyURL:  cfg.AlipayNotifyURL,
+			ReturnURL:  cfg.AlipayReturnURL,
+		})
+		if err != nil {
+			logger.Error("configure alipay", "error", err)
+			os.Exit(1)
+		}
+		paymentsHandler = payments.NewHandlerWithAlipay(paymentsStore, alipayClient)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
