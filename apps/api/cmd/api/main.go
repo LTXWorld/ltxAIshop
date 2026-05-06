@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ltxai/shop/apps/api/internal/auth"
 	"github.com/ltxai/shop/apps/api/internal/config"
 	"github.com/ltxai/shop/apps/api/internal/database"
 	"github.com/ltxai/shop/apps/api/internal/httpserver"
@@ -34,9 +35,16 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := database.ApplyMigrations(ctx, db, cfg.MigrationsPath); err != nil {
+		logger.Error("apply migrations", "error", err)
+		os.Exit(1)
+	}
+
+	authHandler := auth.NewHandler(auth.NewPostgresStore(db), auth.NewTokenManager(cfg.AuthTokenKey))
+
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpserver.NewRouter(),
+		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

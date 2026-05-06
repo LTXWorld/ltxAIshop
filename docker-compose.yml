@@ -22,8 +22,10 @@ services:
       APP_ENV: ${APP_ENV:-development}
       HTTP_ADDR: ":8080"
       DATABASE_URL: ${DATABASE_URL:-postgres://ltxai:ltxai@postgres:5432/ltxai_shop?sslmode=disable}
+      MIGRATIONS_PATH: ${MIGRATIONS_PATH:-migrations}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
+      AUTH_TOKEN_KEY: ${AUTH_TOKEN_KEY:-development-insecure-change-me}
     depends_on:
       postgres:
         condition: service_healthy
