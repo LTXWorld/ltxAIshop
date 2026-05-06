@@ -8,12 +8,14 @@ import (
 	"github.com/ltxai/shop/apps/api/internal/catalog"
 	"github.com/ltxai/shop/apps/api/internal/checkout"
 	"github.com/ltxai/shop/apps/api/internal/health"
+	"github.com/ltxai/shop/apps/api/internal/payments"
 )
 
 type RouterOptions struct {
 	Auth     *auth.Handler
 	Catalog  *catalog.Handler
 	Checkout *checkout.Handler
+	Payments *payments.Handler
 }
 
 type Option func(*RouterOptions)
@@ -33,6 +35,12 @@ func WithCatalog(handler catalog.Handler) Option {
 func WithCheckout(handler checkout.Handler) Option {
 	return func(options *RouterOptions) {
 		options.Checkout = &handler
+	}
+}
+
+func WithPayments(handler payments.Handler) Option {
+	return func(options *RouterOptions) {
+		options.Payments = &handler
 	}
 }
 
@@ -65,6 +73,13 @@ func NewRouter(options ...Option) http.Handler {
 			r.With(authHandler.Middleware).Post("/api/orders", checkoutHandler.CreateOrderFromCart)
 			r.With(authHandler.Middleware).Get("/api/orders", checkoutHandler.ListOrders)
 			r.With(authHandler.Middleware).Get("/api/orders/{id}", checkoutHandler.GetOrder)
+		}
+
+		if routerOptions.Payments != nil {
+			paymentsHandler := routerOptions.Payments
+			r.With(authHandler.Middleware).Post("/api/payments", paymentsHandler.CreatePayment)
+			r.With(authHandler.Middleware).Get("/api/payments/{id}", paymentsHandler.GetPayment)
+			r.With(authHandler.Middleware).Post("/api/payments/{id}/confirm", paymentsHandler.ConfirmPayment)
 		}
 
 		if routerOptions.Catalog != nil {
