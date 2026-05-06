@@ -7,15 +7,21 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ltxai/shop/apps/api/internal/alipay"
 	"github.com/ltxai/shop/apps/api/internal/auth"
 )
 
 type Handler struct {
-	store Store
+	store  Store
+	alipay *alipay.Client
 }
 
 func NewHandler(store Store) Handler {
 	return Handler{store: store}
+}
+
+func NewHandlerWithAlipay(store Store, client *alipay.Client) Handler {
+	return Handler{store: store, alipay: client}
 }
 
 func (h Handler) CreatePayment(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +57,22 @@ func (h Handler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, paymentResponseFromPayment(payment))
+	response := paymentResponseFromPayment(payment)
+	if payment.Provider == ProviderAlipay && h.alipay != nil {
+		pagePay, err := h.alipay.PagePay(alipay.PagePayRequest{
+			OutTradeNo:  payment.MerchantOrderNo,
+			Subject:     "ltxAI Shop Order " + strconv.FormatInt(payment.OrderID, 10),
+			TotalAmount: alipay.AmountFromCents(payment.AmountCents),
+		})
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "create alipay request failed")
+			return
+		}
+		response.PaymentForm = pagePay.FormHTML
+		response.PaymentURL = pagePay.GatewayURL
+	}
+
+	writeJSON(w, http.StatusCreated, response)
 }
 
 func (h Handler) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +143,45 @@ func (h Handler) GetPayment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, paymentResponseFromPayment(payment))
 }
 
+func (h Handler) AlipayNotify(w http.ResponseWriter, r *http.Request) {
+	if h.alipay == nil {
+		http.Error(w, "alipay is not configured", http.StatusServiceUnavailable)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid notify form", http.StatusBadRequest)
+		return
+	}
+
+	notify, err := h.alipay.ParseNotify(r.PostForm)
+	if err != nil {
+		http.Error(w, "invalid signature", http.StatusBadRequest)
+		return
+	}
+	if notify.TradeStatus != alipay.TradeStatusSuccess && notify.TradeStatus != alipay.TradeStatusFinished {
+		_, _ = w.Write([]byte("success"))
+		return
+	}
+
+	amountCents, err := alipay.CentsFromAmount(notify.TotalAmount)
+	if err != nil {
+		http.Error(w, "invalid total amount", http.StatusBadRequest)
+		return
+	}
+
+	_, err = h.store.ConfirmProviderPayment(r.Context(), notify.OutTradeNo, amountCents, notify.TradeNo, valuesToPayload(notify.Raw))
+	if errors.Is(err, ErrPaymentNotFound) || errors.Is(err, ErrPaymentAmountMismatch) {
+		http.Error(w, "payment validation failed", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		http.Error(w, "confirm payment failed", http.StatusInternalServerError)
+		return
+	}
+
+	_, _ = w.Write([]byte("success"))
+}
+
 func currentUserID(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	claims, ok := auth.ClaimsFromContext(r.Context())
 	if !ok {
@@ -152,6 +212,8 @@ type paymentResponse struct {
 	Currency        string         `json:"currency"`
 	Status          string         `json:"status"`
 	RawPayload      map[string]any `json:"rawPayload,omitempty"`
+	PaymentURL      string         `json:"paymentUrl,omitempty"`
+	PaymentForm     string         `json:"paymentForm,omitempty"`
 }
 
 type errorResponse struct {
@@ -191,4 +253,16 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, errorResponse{Error: message})
+}
+
+func valuesToPayload(values map[string][]string) map[string]any {
+	payload := make(map[string]any, len(values))
+	for key, values := range values {
+		if len(values) == 1 {
+			payload[key] = values[0]
+			continue
+		}
+		payload[key] = values
+	}
+	return payload
 }

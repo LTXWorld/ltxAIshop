@@ -63,6 +63,7 @@ type ConfirmPaymentParams struct {
 type Store interface {
 	CreatePayment(ctx context.Context, params CreatePaymentParams) (Payment, error)
 	ConfirmPayment(ctx context.Context, params ConfirmPaymentParams) (Payment, error)
+	ConfirmProviderPayment(ctx context.Context, merchantOrderNo string, amountCents int64, providerTradeNo string, rawPayload map[string]any) (Payment, error)
 	FindPayment(ctx context.Context, userID int64, paymentID int64) (Payment, error)
 }
 
@@ -192,6 +193,69 @@ SET status = 'paid',
     updated_at = now()
 WHERE id = $1 AND user_id = $2 AND status = 'pending_payment'`
 	if _, err := tx.Exec(ctx, updateOrderQuery, payment.OrderID, payment.UserID); err != nil {
+		return Payment{}, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return Payment{}, err
+	}
+	return payment, nil
+}
+
+func (s PostgresStore) ConfirmProviderPayment(ctx context.Context, merchantOrderNo string, amountCents int64, providerTradeNo string, rawPayload map[string]any) (Payment, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return Payment{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	const paymentQuery = `
+SELECT id, order_id, user_id, provider, merchant_order_no, provider_trade_no, amount_cents, currency, status, raw_payload, paid_at, created_at, updated_at
+FROM payments
+WHERE merchant_order_no = $1
+FOR UPDATE`
+	payment, err := scanPayment(tx.QueryRow(ctx, paymentQuery, merchantOrderNo))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Payment{}, ErrPaymentNotFound
+	}
+	if err != nil {
+		return Payment{}, err
+	}
+	if payment.AmountCents != amountCents {
+		return Payment{}, ErrPaymentAmountMismatch
+	}
+	if payment.Status == StatusSucceeded {
+		if err := tx.Commit(ctx); err != nil {
+			return Payment{}, err
+		}
+		return payment, nil
+	}
+
+	rawPayloadJSON, err := json.Marshal(rawPayload)
+	if err != nil {
+		return Payment{}, err
+	}
+	paidAt := s.now()
+	const updatePaymentQuery = `
+UPDATE payments
+SET status = 'succeeded',
+    provider_trade_no = $2,
+    raw_payload = $3,
+    paid_at = $4,
+    updated_at = now()
+WHERE id = $1
+RETURNING id, order_id, user_id, provider, merchant_order_no, provider_trade_no, amount_cents, currency, status, raw_payload, paid_at, created_at, updated_at`
+	payment, err = scanPayment(tx.QueryRow(ctx, updatePaymentQuery, payment.ID, providerTradeNo, rawPayloadJSON, paidAt))
+	if err != nil {
+		return Payment{}, err
+	}
+
+	const updateOrderQuery = `
+UPDATE orders
+SET status = 'paid',
+    updated_at = now()
+WHERE id = $1 AND status = 'pending_payment'`
+	if _, err := tx.Exec(ctx, updateOrderQuery, payment.OrderID); err != nil {
 		return Payment{}, err
 	}
 

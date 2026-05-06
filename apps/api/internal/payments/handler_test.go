@@ -205,6 +205,37 @@ func (s *memoryStore) ConfirmPayment(_ context.Context, params ConfirmPaymentPar
 	return payment, nil
 }
 
+func (s *memoryStore) ConfirmProviderPayment(_ context.Context, merchantOrderNo string, amountCents int64, providerTradeNo string, rawPayload map[string]any) (Payment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, payment := range s.payments {
+		if payment.MerchantOrderNo != merchantOrderNo {
+			continue
+		}
+		if payment.AmountCents != amountCents {
+			return Payment{}, ErrPaymentAmountMismatch
+		}
+		if payment.Status == StatusSucceeded {
+			return payment, nil
+		}
+		now := time.Now()
+		payment.Status = StatusSucceeded
+		payment.ProviderTradeNo = providerTradeNo
+		payment.RawPayload = rawPayload
+		payment.PaidAt = &now
+		s.payments[payment.ID] = payment
+
+		order := s.orders[payment.OrderID]
+		if order.Status == OrderStatusPendingPayment {
+			order.Status = OrderStatusPaid
+			s.orders[order.ID] = order
+		}
+		return payment, nil
+	}
+	return Payment{}, ErrPaymentNotFound
+}
+
 func (s *memoryStore) FindPayment(_ context.Context, userID int64, paymentID int64) (Payment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

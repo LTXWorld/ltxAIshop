@@ -58,6 +58,10 @@ func NewRouter(options ...Option) http.Handler {
 		r.Get("/api/products", catalogHandler.ListProducts)
 		r.Get("/api/products/{slug}", catalogHandler.GetProduct)
 	}
+	if routerOptions.Payments != nil {
+		paymentsHandler := routerOptions.Payments
+		r.Post("/api/payments/alipay/notify", paymentsHandler.AlipayNotify)
+	}
 
 	if routerOptions.Auth != nil {
 		authHandler := routerOptions.Auth

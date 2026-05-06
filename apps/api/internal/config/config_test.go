@@ -67,3 +67,17 @@ func TestLoadRequiresCompleteAdminBootstrapConfig(t *testing.T) {
 		t.Fatal("Load returned nil error, want incomplete admin bootstrap error")
 	}
 }
+
+func TestLoadRequiresCompleteAlipayConfig(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://ltxai:ltxai@localhost:5432/ltxai_shop?sslmode=disable")
+	t.Setenv("ALIPAY_APP_ID", "2021000000000000")
+	t.Setenv("ALIPAY_APP_PRIVATE_KEY", "")
+	t.Setenv("ALIPAY_PUBLIC_KEY", "")
+	t.Setenv("ALIPAY_NOTIFY_URL", "")
+	t.Setenv("ALIPAY_RETURN_URL", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load returned nil error, want incomplete Alipay config error")
+	}
+}
