@@ -56,3 +56,14 @@ func TestLoadRequiresTokenKeyInProduction(t *testing.T) {
 		t.Fatal("Load returned nil error, want missing AUTH_TOKEN_KEY error")
 	}
 }
+
+func TestLoadRequiresCompleteAdminBootstrapConfig(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://ltxai:ltxai@localhost:5432/ltxai_shop?sslmode=disable")
+	t.Setenv("ADMIN_EMAIL", "admin@example.com")
+	t.Setenv("ADMIN_PASSWORD", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load returned nil error, want incomplete admin bootstrap error")
+	}
+}

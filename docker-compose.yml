@@ -26,6 +26,8 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
       AUTH_TOKEN_KEY: ${AUTH_TOKEN_KEY:-development-insecure-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

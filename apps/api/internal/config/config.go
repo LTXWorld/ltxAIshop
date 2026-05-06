@@ -13,6 +13,8 @@ type Config struct {
 	PublicBaseURL  string
 	WebOrigin      string
 	AuthTokenKey   string
+	AdminEmail     string
+	AdminPassword  string
 }
 
 func Load() (Config, error) {
@@ -24,6 +26,8 @@ func Load() (Config, error) {
 		PublicBaseURL:  getEnv("PUBLIC_BASE_URL", "http://localhost:8080"),
 		WebOrigin:      getEnv("WEB_ORIGIN", "http://localhost:5173"),
 		AuthTokenKey:   getEnv("AUTH_TOKEN_KEY", "development-insecure-change-me"),
+		AdminEmail:     os.Getenv("ADMIN_EMAIL"),
+		AdminPassword:  os.Getenv("ADMIN_PASSWORD"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -31,6 +35,9 @@ func Load() (Config, error) {
 	}
 	if cfg.AppEnv == "production" && cfg.AuthTokenKey == "development-insecure-change-me" {
 		return Config{}, errors.New("AUTH_TOKEN_KEY is required in production")
+	}
+	if (cfg.AdminEmail == "") != (cfg.AdminPassword == "") {
+		return Config{}, errors.New("ADMIN_EMAIL and ADMIN_PASSWORD must be set together")
 	}
 
 	return cfg, nil

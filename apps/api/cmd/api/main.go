@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ltxai/shop/apps/api/internal/auth"
+	"github.com/ltxai/shop/apps/api/internal/catalog"
 	"github.com/ltxai/shop/apps/api/internal/config"
 	"github.com/ltxai/shop/apps/api/internal/database"
 	"github.com/ltxai/shop/apps/api/internal/httpserver"
@@ -39,12 +40,17 @@ func main() {
 		logger.Error("apply migrations", "error", err)
 		os.Exit(1)
 	}
+	if err := auth.EnsureBootstrapAdmin(ctx, db, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+		logger.Error("bootstrap admin", "error", err)
+		os.Exit(1)
+	}
 
 	authHandler := auth.NewHandler(auth.NewPostgresStore(db), auth.NewTokenManager(cfg.AuthTokenKey))
+	catalogHandler := catalog.NewHandler(catalog.NewPostgresStore(db))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler)),
+		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler), httpserver.WithCatalog(catalogHandler)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
