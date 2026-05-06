@@ -16,6 +16,7 @@ import (
 	"github.com/ltxai/shop/apps/api/internal/config"
 	"github.com/ltxai/shop/apps/api/internal/database"
 	"github.com/ltxai/shop/apps/api/internal/httpserver"
+	"github.com/ltxai/shop/apps/api/internal/payments"
 )
 
 func main() {
@@ -49,10 +50,11 @@ func main() {
 	authHandler := auth.NewHandler(auth.NewPostgresStore(db), auth.NewTokenManager(cfg.AuthTokenKey))
 	catalogHandler := catalog.NewHandler(catalog.NewPostgresStore(db))
 	checkoutHandler := checkout.NewHandler(checkout.NewPostgresStore(db))
+	paymentsHandler := payments.NewHandler(payments.NewPostgresStore(db))
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler), httpserver.WithCatalog(catalogHandler), httpserver.WithCheckout(checkoutHandler)),
+		Handler:           httpserver.NewRouter(httpserver.WithAuth(authHandler), httpserver.WithCatalog(catalogHandler), httpserver.WithCheckout(checkoutHandler), httpserver.WithPayments(paymentsHandler)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

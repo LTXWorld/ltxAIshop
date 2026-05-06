@@ -39,6 +39,9 @@ Open:
 - `POST /api/orders`
 - `GET /api/orders`
 - `GET /api/orders/{id}`
+- `POST /api/payments`
+- `GET /api/payments/{id}`
+- `POST /api/payments/{id}/confirm`
 
 Registration and login accept:
 
